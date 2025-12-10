@@ -5,7 +5,7 @@ import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import routes from "./modules/index.routes.js";
 import { errorHandler } from "./shared/middleware/error.middleware.js";
-import { env } from "./config/env.js";
+import { env } from "./config/env.config.js";
 
 const app = express();
 

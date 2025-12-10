@@ -1,7 +1,12 @@
 import * as authRepo from "./auth.repo.js";
 import ApiError from "../../shared/utils/ApiError.js";
-import { generateToken } from "../../shared/utils/generateToken.js";
+import {
+  generateJwtToken,
+  generateRandomToken,
+} from "../../shared/utils/token.js";
 import { comparePassword, hashPassword } from "../../shared/utils/hash.js";
+import { sendEmail } from "../../shared/utils/sendEmail.js";
+import { verificationTemplate } from "../../shared/utils/emailTemplates.js";
 
 export const registerUser = async ({
   name,
@@ -13,13 +18,12 @@ export const registerUser = async ({
   address,
   creditLimit,
   profilePic,
-  status,
 }) => {
   const existing = await authRepo.findByEmail(email);
   if (existing) throw new ApiError(409, "Email already in use");
 
   const hashed = await hashPassword(password);
-  const user = await authRepo.create({
+  const user = await authRepo.createUser({
     name,
     email,
     password: hashed,
@@ -29,15 +33,38 @@ export const registerUser = async ({
     address,
     creditLimit,
     profilePic,
-    status: "active",
   });
-  const token = generateToken({ id: user._id });
 
-  // Hide password before returning
+  // generating JWT TOKEN
+  const token = generateJwtToken({ id: user._id });
+
+  // generating EMAIL VERIFICATION TOKEN and SAVE IN DB
+  const emailVerificationToken = generateRandomToken();
+  user.verificationToken = emailVerificationToken;
+  await user.save();
+
+  // sending MAIL
+  let emailTemplate = verificationTemplate({
+    token: emailVerificationToken,
+    name: user?.name,
+    role: user?.role,
+  });
+  await sendEmail({
+    to: user?.email,
+    subject: "Welcome to Shopflow!",
+    html: emailTemplate,
+  });
+
+  // Hide PASSWORD before returning
   const userData = user.toObject();
   delete userData.password;
 
-  return { user: userData, token };
+  return {
+    success: true,
+    message: "User Register Successfully! Check Mail for verification",
+    user: userData,
+    token,
+  };
 };
 
 export const loginUser = async ({ email, password, role }) => {
@@ -51,7 +78,7 @@ export const loginUser = async ({ email, password, role }) => {
   if (checkRole)
     throw new ApiError(403, "Access denied. Insufficient role permissions.");
 
-  const token = generateToken({ id: user._id });
+  const token = generateJwtToken({ id: user._id });
 
   // Hide password before returning
   delete user.password;

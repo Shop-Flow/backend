@@ -14,6 +14,7 @@ export const loginSchema = Joi.object({
     "string.empty": "Role is required",
   }),
 });
+
 //⭐ register
 const addressSchema = Joi.object({
   street: Joi.string().trim().optional(),
@@ -37,18 +38,25 @@ export const registerSchema = Joi.object({
     "string.empty": "Password is required",
     "string.min": "Password must be at least 6 characters long",
   }),
-  role: Joi.string().valid("distributor", "retailer").required().messages({
-    "any.only": "Role must be either distributor or retailer",
-    "string.empty": "Role is required",
-  }),
+  role: Joi.string()
+    .valid("SUPERADMIN", "DISTRIBUTOR", "RETAILER")
+    .required()
+    .messages({
+      "any.only": "Role must be either distributor, retailer or superadmin",
+      "string.empty": "Role is required",
+    }),
   phone: Joi.string().trim().optional(),
   companyName: Joi.string().trim().optional(),
   address: addressSchema.optional(),
-  creditLimit: Joi.number().optional(),
+  creditLimit: Joi.number().when("role", {
+    is: "retailers",
+    then: Joi.number().optional(),
+    otherwise: Joi.forbidden(),
+  }),
   profilePic: Joi.string().uri().optional().messages({
     "string.uri": "Profile picture must be a valid URI",
   }),
-  status: Joi.string().valid("active", "inactive").default("active").messages({
-    "any.only": "Status must be either active or inactive",
-  }),
+  isActive: Joi.boolean().default(false),
+  isEmailVerified: Joi.boolean().default(false),
+  verificationToken: Joi.string().optional().default(""),
 });

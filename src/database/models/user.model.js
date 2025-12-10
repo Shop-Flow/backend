@@ -14,17 +14,20 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true, min: 2, max: 100 },
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true, min: 6 },
-    role: { type: String, require: true, enum: ["distributor", "retailer"] },
+    role: {
+      type: String,
+      require: true,
+      enum: ["SUPERADMIN", "DISTRIBUTOR", "RETAILER"],
+    },
     phone: { type: String, trim: true },
     companyName: { type: String, trim: true },
     address: address,
-    creditLimit: { type: Number },
-    profilePic: { type: String },
-    status: {
-      type: String,
-      enum: ["active", "inactive"],
-      default: "active",
-    },
+    // Only for retailers (optional credit feature)
+    creditLimit: { type: Number, default: 0 },
+    profilePic: { type: String, default: null },
+    isActive: { type: Boolean, default: false },
+    isEmailVerified: { type: Boolean, default: false },
+    verificationToken: { type: String, default: "" },
   },
   { timestamps: true }
 );
